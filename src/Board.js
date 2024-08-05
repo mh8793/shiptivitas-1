@@ -21,6 +21,48 @@ export default class Board extends React.Component {
       complete: React.createRef(),
     }
   }
+
+  componentDidMount() {
+    this.initDragula();
+  }
+
+  componentDidUpdate() {
+    this.initDragula();
+  }
+
+  initDragula() {
+    const swimlaneElements = Object.values(this.swimlanes).map(ref => ref.current);
+
+    Dragula(swimlaneElements, {
+      moves: (el, container, handle) => true,
+      accepts: (el, target) => true,
+    }).on('drop', (el, target) => {
+      const newStatus = target.dataset.status;
+      const id = el.getAttribute('data-id');
+      this.updateClientStatus(id, newStatus);
+    }).on('shadow', (el) => {
+      el.style.backgroundColor = '#f0f0f0'; // Add a visual effect while dragging
+    }).on('dragend', (el) => {
+      el.style.backgroundColor = ''; // Remove the effect after dragging
+    });
+  }
+
+  updateClientStatus(id, newStatus) {
+    this.setState(prevState => {
+      const updatedClients = { ...prevState.clients };
+      // Update the status for the moved card
+      Object.keys(updatedClients).forEach(status => {
+        updatedClients[status] = updatedClients[status].map(client => 
+          client.id === id ? { ...client, status: newStatus } : client
+        );
+      });
+
+      return {
+        clients: updatedClients
+      };
+    });
+  }
+
   getClients() {
     return [
       ['1','Stark, White and Abbott','Cloned Optimal Architecture', 'in-progress'],
@@ -50,9 +92,15 @@ export default class Board extends React.Component {
       status: companyDetails[3],
     }));
   }
+
   renderSwimlane(name, clients, ref) {
     return (
-      <Swimlane name={name} clients={clients} dragulaRef={ref}/>
+      <Swimlane
+        name={name}
+        clients={clients}
+        dragulaRef={ref}
+        status={name.toLowerCase().replace(' ', '-')}
+      />
     );
   }
 
